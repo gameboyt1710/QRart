@@ -1,16 +1,29 @@
 # Railway Deployment Guide
 
-This project is configured for seamless deployment on Railway.
+This project uses a **single-service architecture** for Railway deployment, which is more cost-effective than deploying multiple services.
 
-## Prerequisites
+## 🏗️ Architecture
+
+**Single Node.js Service:**
+- Backend API (Express)
+- Web UI (serves built React app)
+- PostgreSQL Database (separate Railway service)
+
+**Why this approach?**
+- ✅ Lower cost (~$10-20/month vs ~$15-30/month)
+- ✅ No CORS issues (same origin)
+- ✅ Simpler deployment (one service to manage)
+- ✅ Same as your imagethingy project approach
+
+## 📋 Prerequisites
 
 1. A Railway account (https://railway.app)
 2. GitHub repository with your code
-3. PostgreSQL database on Railway
+3. Railway CLI (optional): `npm install -g @railway/cli`
 
-## Setup Steps
+## 🚀 Deployment Steps
 
-### 1. Push to GitHub
+### Step 1: Push to GitHub
 
 ```bash
 git init
@@ -21,61 +34,67 @@ git remote add origin https://github.com/yourusername/qrart.git
 git push -u origin main
 ```
 
-### 2. Create Railway Project
+### Step 2: Create Railway Project
 
 1. Go to https://railway.app
 2. Click "New Project"
 3. Select "Deploy from GitHub repo"
 4. Choose your QRart repository
+5. Railway will detect it as a Node.js project
 
-### 3. Add PostgreSQL Database
+### Step 3: Add PostgreSQL Database
 
-1. In your Railway project, click "New"
+1. In your Railway project dashboard, click "New"
 2. Select "Database" → "PostgreSQL"
-3. Railway will create the database and set DATABASE_URL automatically
+3. Railway will:
+   - Create the database
+   - Automatically set `DATABASE_URL` environment variable
+   - Connect it to your service
 
-### 4. Deploy Backend
+### Step 4: Configure the Service
 
-1. Click "New" → "GitHub Repo"
-2. Select your repository
-3. Configure the service:
-   - **Name**: qrart-backend
-   - **Root Directory**: `apps/backend`
-   - **Build Command**: (auto-detected from railway.toml)
-   - **Start Command**: (auto-detected from railway.toml)
+1. Click on your service (not the database)
+2. Go to "Settings"
+3. Set **Root Directory**: `apps/backend`
+4. Railway will auto-detect build/start commands from `railway.toml`
 
-4. Add environment variables:
-   - `DATABASE_URL`: (automatically set by Railway Postgres)
-   - `API_KEYS`: Your production API keys (e.g., `prod-key-123,artist-key-456`)
-   - `CORS_ORIGINS`: Your frontend domain (e.g., `https://qrart-web.up.railway.app`)
-   - `NODE_ENV`: `production`
+### Step 5: Set Environment Variables
 
-5. Click "Deploy"
+In your service settings, add these variables:
 
-### 5. Deploy Web UI
+```bash
+# Required
+API_KEYS=prod-key-123,artist-key-456
+NODE_ENV=production
 
-1. Click "New" → "GitHub Repo"
-2. Select your repository again
-3. Configure the service:
-   - **Name**: qrart-web
-   - **Root Directory**: `apps/web`
-   - **Build Command**: (auto-detected from railway.toml)
-   - **Start Command**: (auto-detected from railway.toml)
+# Optional (Railway sets these automatically)
+# DATABASE_URL=<automatically set>
+# PORT=<automatically set>
 
-4. Add environment variable:
-   - `VITE_API_BASE_URL`: Your backend URL (e.g., `https://qrart-backend.up.railway.app`)
+# CORS - use your Railway domain or leave empty for same-origin
+CORS_ORIGINS=https://your-app.railway.app
+```
 
-5. Click "Deploy"
+**To add variables:**
+1. Go to service → "Variables" tab
+2. Click "New Variable"
+3. Add each variable
 
-### 6. Update CORS Settings
+### Step 6: Deploy!
 
-Once both services are deployed:
+1. Click "Deploy" or just push to GitHub
+2. Railway will:
+   - Install dependencies
+   - Build the backend
+   - Build the web UI
+   - Run database migrations
+   - Start the server
 
-1. Go to backend service settings
-2. Update `CORS_ORIGINS` environment variable with your web UI URL
-3. Redeploy if needed
+**Your app will be available at:** `https://your-app-name.up.railway.app`
 
-### 7. Configure Extension
+## 🔌 Extension Configuration
+
+After deployment:
 
 1. Build the extension locally:
    ```bash
@@ -83,96 +102,94 @@ Once both services are deployed:
    npm run build
    ```
 
-2. Update the extension to use your Railway backend:
-   - Open extension settings after installation
-   - Set Backend URL to your Railway backend URL
-   - Set API Key to your production key
+2. Load in browser:
+   - Go to `chrome://extensions`
+   - Enable "Developer mode"
+   - Click "Load unpacked"
+   - Select `apps/extension/dist/`
 
-3. Load in browser:
-   - Chrome: `chrome://extensions` → "Load unpacked" → select `dist/`
-   - Firefox: `about:debugging` → "Load Temporary Add-on"
+3. Configure extension:
+   - Click extension icon
+   - Backend URL: `https://your-app-name.up.railway.app`
+   - API Key: One of your production keys from `API_KEYS`
+   - Click "Save"
 
-## Railway Configuration Files
+## 🔄 Auto-Deployments
 
-### Backend (`apps/backend/railway.toml`)
-```toml
-[build]
-builder = "nixpacks"
-buildCommand = "npm install && npm run prisma:generate && npm run build"
-
-[deploy]
-startCommand = "npm run prisma:migrate:prod && npm run start"
-healthcheckPath = "/health"
-healthcheckTimeout = 100
-restartPolicyType = "on_failure"
-restartPolicyMaxRetries = 3
-```
-
-### Web (`apps/web/railway.toml`)
-```toml
-[build]
-builder = "nixpacks"
-buildCommand = "npm install && npm run build"
-
-[deploy]
-startCommand = "npm run start"
-```
-
-## Automatic Deployments
-
-Railway will automatically deploy when you push to your main branch:
+Railway automatically deploys when you push to your main branch:
 
 ```bash
+# Make changes
 git add .
 git commit -m "Update feature"
 git push
+
+# Railway deploys automatically! 🚀
 ```
 
-## Environment Variables Summary
+## 📊 What Gets Built
 
-### Backend Service
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection (auto) | `postgresql://...` |
-| `API_KEYS` | Comma-separated API keys | `prod-key-123,artist-key-456` |
-| `CORS_ORIGINS` | Allowed origins | `https://your-web.railway.app` |
-| `NODE_ENV` | Environment | `production` |
-| `PORT` | Server port (auto) | `3000` |
+The Railway build process:
 
-### Web Service
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `VITE_API_BASE_URL` | Backend API URL | `https://your-backend.railway.app` |
-| `PORT` | Server port (auto) | `3000` |
+1. **Install dependencies** (`npm install`)
+2. **Generate Prisma Client** (`npm run prisma:generate`)
+3. **Build backend** (TypeScript → JavaScript in `apps/backend/dist/`)
+4. **Build web UI** (React → static files in `apps/web/dist/`)
+5. **Run migrations** (`npm run prisma:migrate:prod`)
+6. **Start server** (`npm run start`)
 
-## Database Migrations
+The backend then serves:
+- API endpoints at `/api/*`
+- Web UI at all other routes (SPA mode)
 
-Migrations run automatically on backend deployment via the startCommand in railway.toml.
+The backend then serves:
+- API endpoints at `/api/*`
+- Web UI at all other routes (SPA mode)
 
-To run migrations manually:
+## 🌐 Environment Variables
+
+| Variable | Required | Description | Example |
+|----------|----------|-------------|---------|
+| `DATABASE_URL` | ✅ (auto) | PostgreSQL connection | Railway sets automatically |
+| `API_KEYS` | ✅ | Comma-separated API keys | `prod-key-123,artist-key-456` |
+| `NODE_ENV` | ✅ | Environment name | `production` |
+| `PORT` | (auto) | Server port | Railway sets automatically |
+| `CORS_ORIGINS` | Optional | Allowed origins | Your Railway domain or empty |
+
+## 💰 Cost Breakdown
+
+**Single Service Deployment:**
+- Node.js service: $5-10/month
+- PostgreSQL database: $5-10/month
+- **Total: ~$10-20/month**
+
+**vs. Multiple Services (old approach):**
+- Backend service: $5-10/month
+- Web service: $5-10/month
+- PostgreSQL: $5-10/month  
+- **Total: ~$15-30/month**
+
+**You save ~$5-10/month with single-service!** 💰
+
+## 🔍 Monitoring
+
+### View Logs
+1. Go to your service in Railway
+2. Click "Logs" tab
+3. View real-time logs
+
+### Health Check
+Your backend has a health endpoint:
 ```bash
-railway run npm run prisma:migrate:prod
+curl https://your-app.railway.app/health
 ```
 
-## Monitoring
+### Database
+1. Click on PostgreSQL service
+2. View connection details
+3. Monitor usage and performance
 
-- **Logs**: View in Railway dashboard for each service
-- **Health**: Backend has `/health` endpoint
-- **Metrics**: Railway provides CPU, memory, and network metrics
-
-## Costs
-
-Railway offers:
-- **Free tier**: $5/month usage
-- **Pro tier**: $20/month + usage
-
-Estimated monthly cost for this MVP:
-- Database: ~$5-10
-- Backend: ~$5-10
-- Web: ~$2-5
-- **Total**: ~$12-25/month
-
-## Troubleshooting
+## 🐛 Troubleshooting
 
 ### Database connection fails
 - Check DATABASE_URL is set correctly

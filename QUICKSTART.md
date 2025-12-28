@@ -52,42 +52,42 @@ git remote add origin https://github.com/YOUR_USERNAME/qrart.git
 git push -u origin main
 ```
 
-### Step 2: Deploy Backend
+### Step 2: Deploy on Railway
 
 1. Go to https://railway.app
 2. "New Project" → "Deploy from GitHub repo"
 3. Select your repository
-4. Click "Add Service" → "Database" → "PostgreSQL"
-5. Click "Add Service" → "GitHub Repo" → Select your repo
-   - Name: `qrart-backend`
-   - Root Directory: `apps/backend`
-6. Add environment variables:
+4. Railway auto-detects Node.js project
+
+### Step 3: Add PostgreSQL
+
+1. Click "New" → "Database" → "PostgreSQL"
+2. Railway automatically connects it
+3. Sets `DATABASE_URL` env variable
+
+### Step 4: Configure Service
+
+1. Click on your service (not database)
+2. Go to "Settings"
+3. Set **Root Directory**: `apps/backend`
+4. Add environment variables:
    ```
    API_KEYS=your-production-key-123,another-key-456
-   CORS_ORIGINS=https://your-web-url.railway.app
    NODE_ENV=production
+   CORS_ORIGINS=https://your-app.railway.app
    ```
-7. Deploy!
 
-### Step 3: Deploy Web UI
+### Step 5: Deploy!
 
-1. In same Railway project, click "New"
-2. "GitHub Repo" → Select your repo again
-   - Name: `qrart-web`
-   - Root Directory: `apps/web`
-3. Add environment variable:
-   ```
-   VITE_API_BASE_URL=https://your-backend-url.railway.app
-   ```
-4. Deploy!
+Railway automatically:
+- Installs dependencies
+- Builds backend + web UI
+- Runs database migrations
+- Starts server
 
-### Step 4: Update CORS
+**Your app**: `https://your-app-name.up.railway.app`
 
-1. Go to backend service
-2. Update `CORS_ORIGINS` with your web UI URL
-3. Redeploy
-
-### Step 5: Build & Configure Extension
+### Step 6: Configure Extension
 
 ```bash
 # Build locally
@@ -98,10 +98,21 @@ npm run build
 # 1. chrome://extensions
 # 2. Load unpacked → select dist/
 # 3. Click extension icon
-# 4. Enter Railway backend URL
+# 4. Enter Railway URL
 # 5. Enter your production API key
 # 6. Save
 ```
+
+---
+
+## 💰 Cost Breakdown
+
+**Single Service (Recommended):**
+- Node.js service: $5-10/month
+- PostgreSQL: $5-10/month
+- **Total: ~$10-20/month** ✅
+
+This serves both API and Web UI from one service!
 
 ---
 

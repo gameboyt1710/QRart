@@ -201,14 +201,31 @@ app.get('/terms', (_req, res) => {
 app.use('/api/artworks', artworksRouter);
 
 // ===========================================
-// 404 Handler
+// Serve Web UI (Production)
 // ===========================================
-app.use((_req, res) => {
-  res.status(404).json({
-    error: 'not_found',
-    message: 'The requested resource was not found',
+// In production, serve the built React app from the web/dist folder
+// This allows us to deploy everything as a single service on Railway
+if (process.env.NODE_ENV === 'production') {
+  const webDistPath = new URL('../../web/dist', import.meta.url).pathname;
+  
+  // Serve static files
+  app.use(express.static(webDistPath));
+  
+  // SPA fallback - serve index.html for all non-API routes
+  app.get('*', (_req, res) => {
+    res.sendFile(`${webDistPath}/index.html`);
   });
-});
+  
+  console.log(`📱 Serving web UI from: ${webDistPath}`);
+} else {
+  // Development: Just show 404 for non-API routes
+  app.use((_req, res) => {
+    res.status(404).json({
+      error: 'not_found',
+      message: 'The requested resource was not found. In development, run the web UI separately.',
+    });
+  });
+}
 
 // ===========================================
 // Error Handler

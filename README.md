@@ -227,27 +227,29 @@ Returns terms of service page.
    - Go to [railway.app](https://railway.app)
    - "New Project" → "Deploy from GitHub repo"
    - Add PostgreSQL database (automatic)
-   - Deploy backend (set root dir: `apps/backend`)
-   - Deploy web (set root dir: `apps/web`)
+   - Set root directory: `apps/backend`
+   - Add env vars: `API_KEYS`, `NODE_ENV=production`
 
-3. **Configure**:
-   - Backend env vars: `API_KEYS`, `CORS_ORIGINS`
-   - Web env var: `VITE_API_BASE_URL`
+3. **Done!**
+   - API + Web UI: `https://your-app.railway.app`
+   - Single service serves both!
 
 4. **Extension** (local build):
    ```bash
    cd apps/extension
    npm run build
    # Load dist/ folder in chrome://extensions
+   # Configure with Railway URL
    ```
 
 Railway handles:
 - ✅ Dependency installation
+- ✅ Backend + Web UI builds
 - ✅ Database migrations
 - ✅ HTTPS certificates
 - ✅ Auto-deployments on git push
 
-**Estimated cost**: ~$12-25/month
+**Estimated cost**: ~$10-20/month (single service + database)
 
 ---
 
