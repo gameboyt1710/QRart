@@ -1,0 +1,71 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Artwork model stores uploaded artwork and metadata
+/// For MVP, we store images directly in the database as bytes
+/// TODO: For production, consider using S3/R2/Cloudflare Images:
+///   1. Add a `storageUrl` field instead of `data`
+///   2. Upload to object storage and store the URL
+///   3. Implement signed URLs for private access
+model Artwork {
+  id        String   @id @default(cuid())
+  
+  /// Short, URL-safe identifier used in markers (e.g., "4F9A21")
+  /// This is what gets embedded in tweets: ~ART:4F9A21~
+  shortId   String   @unique
+  
+  /// Optional title for the artwork
+  title     String?
+  
+  /// MIME type of the image (e.g., "image/png", "image/jpeg")
+  mimeType  String
+  
+  /// Raw image data stored as bytes
+  /// For MVP simplicity; in production use object storage
+  data      Bytes
+  
+  /// The API key of the owner who uploaded this artwork
+  /// Simple ownership tracking for MVP
+  /// In production, this would be a foreign key to a Users table
+  ownerApiKey String
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([shortId])
+  @@index([ownerApiKey])
+}
+
+/// API Keys for authentication
+/// For MVP, we use a simple model; in production you'd want:
+/// - User accounts with proper auth (OAuth, etc.)
+/// - API key rotation
+/// - Rate limits per key
+/// - Scopes/permissions
+model ApiKey {
+  id        String   @id @default(cuid())
+  
+  /// The actual API key value (hashed in production!)
+  /// For MVP we store plaintext; hash with bcrypt/argon2 in production
+  key       String   @unique
+  
+  /// Human-readable name for this key
+  name      String?
+  
+  /// Whether this key is active
+  active    Boolean  @default(true)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([key])
+}

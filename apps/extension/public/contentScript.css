@@ -1,0 +1,105 @@
+/* QRart Content Script Styles */
+
+/* Container for revealed artwork */
+.qrart-container {
+  display: block;
+  margin: 12px 0;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #15202b;
+  border: 1px solid #38444d;
+}
+
+/* The artwork image */
+.qrart-image {
+  display: block;
+  width: 100%;
+  max-height: 500px;
+  object-fit: contain;
+  background: #000;
+}
+
+/* Loading state */
+.qrart-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  color: #8899a6;
+  font-size: 14px;
+  gap: 8px;
+}
+
+.qrart-loading::before {
+  content: '';
+  width: 16px;
+  height: 16px;
+  border: 2px solid #38444d;
+  border-top-color: #e94560;
+  border-radius: 50%;
+  animation: qrart-spin 0.8s linear infinite;
+}
+
+@keyframes qrart-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Error state */
+.qrart-error {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  color: #f87171;
+  font-size: 13px;
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.2);
+  border-radius: 8px;
+  margin: 8px 0;
+}
+
+.qrart-error::before {
+  content: '🔒';
+  margin-right: 8px;
+}
+
+/* Header bar on artwork */
+.qrart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #1a1a2e, #252542);
+  border-bottom: 1px solid #38444d;
+  font-size: 12px;
+  color: #8899a6;
+}
+
+.qrart-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #e94560;
+  font-weight: 600;
+}
+
+.qrart-title {
+  color: #ffffff;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+/* Hide the original marker text - optional, we keep it visible but styled */
+.qrart-marker {
+  display: inline;
+  color: #536471;
+  font-size: 0.9em;
+  opacity: 0.7;
+}
+
+/* Hidden marker after replacement */
+.qrart-marker-hidden {
+  display: none;
+}
