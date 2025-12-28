@@ -55,8 +55,11 @@ git push -u origin main
 
 1. Click on your service (not the database)
 2. Go to "Settings"
-3. Set **Root Directory**: `apps/backend`
-4. Railway will auto-detect build/start commands from `railway.toml`
+3. **🔴 CRITICAL**: Set **Root Directory**: `apps/backend`
+   - This tells Railway to look for `apps/backend/railway.toml`
+   - This is where the build/start commands are defined
+   - Without this, Railway won't find the configuration
+4. Railway will auto-detect build/start commands from `apps/backend/railway.toml`
 
 ### Step 5: Set Environment Variables
 
@@ -190,6 +193,29 @@ curl https://your-app.railway.app/health
 3. Monitor usage and performance
 
 ## 🐛 Troubleshooting
+
+### ❌ "No start command was found"
+**Problem**: Railway can't find how to start your app.
+
+**Solution**:
+1. Go to service → "Settings"
+2. Set **Root Directory** to `apps/backend`
+3. Railway will then find `apps/backend/railway.toml` and `apps/backend/package.json`
+4. Redeploy
+
+**Why this happens**: Your monorepo has a root `package.json` without a start command. Railway needs to look in `apps/backend` instead.
+
+### ❌ "railway.toml not rooted at valid path"
+**Problem**: Railway.toml exists but Railway isn't reading it.
+
+**Cause**: Root directory is not set to `apps/backend`
+
+**Solution**:
+1. In Railway dashboard, click on your service
+2. Go to "Settings" tab
+3. Find "Root Directory" 
+4. Set it to `apps/backend`
+5. Trigger a new deploy
 
 ### Database connection fails
 - Check DATABASE_URL is set correctly
