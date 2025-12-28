@@ -201,31 +201,209 @@ app.get('/terms', (_req, res) => {
 app.use('/api/artworks', artworksRouter);
 
 // ===========================================
-// Serve Web UI (Production)
+// Simple upload page (root)
 // ===========================================
-// In production, serve the built React app from the web/dist folder
-// This allows us to deploy everything as a single service on Railway
-if (process.env.NODE_ENV === 'production') {
-  const webDistPath = new URL('../../web/dist', import.meta.url).pathname;
-  
-  // Serve static files
-  app.use(express.static(webDistPath));
-  
-  // SPA fallback - serve index.html for all non-API routes
-  app.get('*', (_req, res) => {
-    res.sendFile(`${webDistPath}/index.html`);
-  });
-  
-  console.log(`📱 Serving web UI from: ${webDistPath}`);
-} else {
-  // Development: Just show 404 for non-API routes
-  app.use((_req, res) => {
-    res.status(404).json({
-      error: 'not_found',
-      message: 'The requested resource was not found. In development, run the web UI separately.',
+app.get('/', (_req, res) => {
+  res.type('text/html');
+  res.send(`
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QRart - Upload Artwork</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0a0a0a;
+      color: #e0e0e0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      padding: 2rem;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #8b5cf6;
+      margin-bottom: 0.5rem;
+    }
+    .subtitle {
+      color: #888;
+      margin-bottom: 2rem;
+    }
+    .card {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+    }
+    input, button {
+      width: 100%;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+      border: 1px solid #333;
+      border-radius: 4px;
+      background: #0a0a0a;
+      color: #e0e0e0;
+      font-size: 1rem;
+    }
+    button {
+      background: #8b5cf6;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button:hover { background: #7c3aed; }
+    button:disabled {
+      background: #333;
+      cursor: not-allowed;
+    }
+    .result {
+      background: #1a2910;
+      border: 1px solid #2d4a1c;
+      padding: 1rem;
+      border-radius: 4px;
+      margin-top: 1rem;
+      display: none;
+    }
+    .result.show { display: block; }
+    .marker {
+      font-family: monospace;
+      font-size: 1.1rem;
+      color: #4ade80;
+      background: #0a0a0a;
+      padding: 0.5rem;
+      border-radius: 4px;
+      margin: 0.5rem 0;
+      word-break: break-all;
+    }
+    .instructions {
+      color: #888;
+      font-size: 0.9rem;
+    }
+    .instructions ol {
+      margin-left: 1.5rem;
+      margin-top: 0.5rem;
+    }
+    .error {
+      background: #2a1010;
+      border: 1px solid #4a1c1c;
+      color: #f87171;
+    }
+    #preview {
+      max-width: 100%;
+      border-radius: 4px;
+      margin-top: 1rem;
+      display: none;
+    }
+    #preview.show { display: block; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎨 QRart</h1>
+    <p class="subtitle">Upload artwork → Get a marker → Post on X/Twitter</p>
+
+    <div class="card">
+      <input type="text" id="apiKey" placeholder="Your API Key" />
+      <input type="file" id="imageFile" accept="image/*" />
+      <img id="preview" alt="Preview" />
+      <button id="uploadBtn" onclick="upload()">Upload Artwork</button>
+
+      <div id="result" class="result">
+        <h3>✨ Artwork uploaded!</h3>
+        <p>Your marker:</p>
+        <div class="marker" id="marker"></div>
+        <button onclick="copyMarker()">Copy Marker</button>
+      </div>
+
+      <div id="error" class="result error">
+        <p id="errorMsg"></p>
+      </div>
+    </div>
+
+    <div class="card instructions">
+      <h3>How it works</h3>
+      <ol>
+        <li>Upload your artwork</li>
+        <li>Copy the marker (e.g., ~ART:abc123~)</li>
+        <li>Post the marker in a tweet</li>
+        <li>Users with the browser extension see your artwork!</li>
+      </ol>
+    </div>
+  </div>
+
+  <script>
+    const preview = document.getElementById('preview');
+    const fileInput = document.getElementById('imageFile');
+    const resultDiv = document.getElementById('result');
+    const errorDiv = document.getElementById('error');
+    const markerDiv = document.getElementById('marker');
+    const errorMsg = document.getElementById('errorMsg');
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          preview.src = e.target.result;
+          preview.classList.add('show');
+        };
+        reader.readAsDataURL(file);
+      }
     });
-  });
-}
+
+    async function upload() {
+      const apiKey = document.getElementById('apiKey').value;
+      const file = fileInput.files[0];
+
+      if (!apiKey || !file) {
+        showError('Please enter API key and select an image');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('image', file);
+
+      try {
+        const res = await fetch('/api/artworks', {
+          method: 'POST',
+          headers: { 'x-api-key': apiKey },
+          body: formData
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Upload failed');
+        }
+
+        const data = await res.json();
+        markerDiv.textContent = data.marker;
+        resultDiv.classList.add('show');
+        errorDiv.classList.remove('show');
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      errorDiv.classList.add('show');
+      resultDiv.classList.remove('show');
+    }
+
+    function copyMarker() {
+      navigator.clipboard.writeText(markerDiv.textContent);
+      alert('Marker copied to clipboard!');
+    }
+  </script>
+</body>
+</html>
+  `);
+});
 
 // ===========================================
 // Error Handler
