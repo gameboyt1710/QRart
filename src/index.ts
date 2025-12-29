@@ -165,8 +165,15 @@ app.get('/', (_req, res) => {
 app.post('/upload', upload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
+      console.error('No file in request');
       return res.status(400).json({ error: 'No image provided' });
     }
+
+    console.log('Uploading image:', {
+      filename: req.file.originalname,
+      size: req.file.size,
+      mimetype: req.file.mimetype,
+    });
 
     const id = nanoid(8);
     const artwork = await prisma.artwork.create({
@@ -177,11 +184,12 @@ app.post('/upload', upload.single('image'), async (req, res) => {
       },
     });
 
+    console.log('Created artwork:', id);
     const qrCode = `~QR:${artwork.id}~`;
     res.json({ id: artwork.id, qrCode });
   } catch (error) {
     console.error('Upload error:', error);
-    res.status(500).json({ error: 'Upload failed' });
+    res.status(500).json({ error: String(error) });
   }
 });
 
