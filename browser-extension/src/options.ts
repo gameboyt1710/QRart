@@ -7,7 +7,7 @@ const backendUrlInput = document.getElementById('backendUrl') as HTMLInputElemen
 const saveBtn = document.getElementById('save') as HTMLButtonElement;
 
 // Load saved config
-backendUrlInput.value = localStorage.getItem('backendUrl') || 'http://localhost:4000';
+backendUrlInput.value = localStorage.getItem('backendUrl') || 'https://qrart-production.up.railway.app';
 
 // Save on click
 saveBtn.addEventListener('click', () => {

@@ -7,7 +7,7 @@ const QR_REGEX = /~QR:([A-Za-z0-9_-]{4,20})~/g;
 const processedMarkers = new Map<string, boolean>();
 
 let config = {
-  backendUrl: localStorage.getItem('backendUrl') || 'http://localhost:4000',
+  backendUrl: localStorage.getItem('backendUrl') || 'https://qrart-production.up.railway.app',
 };
 
 // Watch for new tweets
