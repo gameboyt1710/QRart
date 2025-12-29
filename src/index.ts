@@ -7,7 +7,9 @@ import { PrismaClient } from '@prisma/client';
 import QRCode from 'qrcode';
 
 const app = express();
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  log: ['error', 'warn'],
+});
 const PORT = process.env.PORT || 4000;
 
 console.log('Starting QRart...');
@@ -17,6 +19,10 @@ console.log('PORT:', PORT);
 // Ensure table exists
 async function ensureTable() {
   try {
+    console.log('Connecting to database...');
+    await prisma.$connect();
+    console.log('✓ Connected to database');
+    
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "Artwork" (
         "id" TEXT NOT NULL,
@@ -28,7 +34,8 @@ async function ensureTable() {
     `);
     console.log('✓ Table ready');
   } catch (error) {
-    console.error('Table creation warning:', (error as Error).message);
+    console.error('❌ Database error:', (error as Error).message);
+    throw error;
   }
 }
 
@@ -253,23 +260,25 @@ app.get('/health', (_req, res) => {
 // Start Server
 // =====================
 async function start() {
-  await ensureTable();
-  
-  app.listen(PORT, () => {
-    console.log(`
-🎨 QRart Server
-================
+  try {
+    await ensureTable();
+    
+    app.listen(PORT, () => {
+      console.log(`
+🎨 QRart Server Ready
+=====================
 🚀 http://localhost:${PORT}
 📤 Upload: POST /upload
 🖼️  Image: GET /image/:id
 ❤️  Health: GET /health
-    `);
-  });
+      `);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', (error as Error).message);
+    process.exit(1);
+  }
 }
 
-start().catch((error) => {
-  console.error('Failed to start server:', error);
-  process.exit(1);
-});
+start();
 
 export default app;
