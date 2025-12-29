@@ -14,6 +14,27 @@ console.log('Starting QRart...');
 console.log('DATABASE_URL:', process.env.DATABASE_URL ? '✓ set' : '✗ not set');
 console.log('PORT:', PORT);
 
+// Ensure table exists
+async function ensureTable() {
+  try {
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "Artwork" (
+        "id" TEXT NOT NULL,
+        "imageData" BYTEA NOT NULL,
+        "mimeType" TEXT NOT NULL,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "Artwork_pkey" PRIMARY KEY ("id")
+      );
+    `);
+    console.log('✓ Table ready');
+  } catch (error) {
+    console.error('Table creation warning:', (error as Error).message);
+  }
+}
+
+// Initialize on startup
+ensureTable();
+
 // Middleware
 app.use(cors());
 app.use(express.json());
