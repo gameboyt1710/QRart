@@ -4,6 +4,7 @@ import cors from 'cors';
 import multer from 'multer';
 import { nanoid } from 'nanoid';
 import { PrismaClient } from '@prisma/client';
+import QRCode from 'qrcode';
 
 const app = express();
 const prisma = new PrismaClient();
@@ -96,9 +97,9 @@ app.get('/', (_req, res) => {
 
       <div id="result" class="result">
         <h3>✨ Success!</h3>
-        <p>Your QR marker:</p>
-        <div class="qr-code" id="qrCode"></div>
-        <button onclick="copyQR()">Copy to Clipboard</button>
+        <p>Your QR code:</p>
+        <img id="qrCode" style="width: 300px; height: 300px; border: 2px solid #4ade80; border-radius: 8px;" />
+        <button onclick="downloadQR()">Download QR</button>
       </div>
 
       <div id="error" class="result error" style="display: none;">
@@ -138,11 +139,12 @@ app.get('/', (_req, res) => {
         if (!res.ok) throw new Error('Upload failed');
 
         const data = await res.json();
-        document.getElementById('qrCode').textContent = data.qrCode;
+        const qrImg = document.getElementById('qrCode') as HTMLImageElement;
+        qrImg.src = 'data:image/png;base64,' + data.qrCode;
         document.getElementById('result').classList.add('show');
         document.getElementById('error').style.display = 'none';
       } catch (err) {
-        showError(err.message);
+        showError((err as Error).message);
       }
     }
 
@@ -152,10 +154,12 @@ app.get('/', (_req, res) => {
       document.getElementById('result').classList.remove('show');
     }
 
-    function copyQR() {
-      const qr = document.getElementById('qrCode').textContent;
-      navigator.clipboard.writeText(qr);
-      alert('Copied!');
+    function downloadQR() {
+      const qrImg = document.getElementById('qrCode') as HTMLImageElement;
+      const link = document.createElement('a');
+      link.href = qrImg.src;
+      link.download = 'qrart.png';
+      link.click();
     }
   </script>
 </body>
@@ -188,9 +192,12 @@ app.post('/upload', upload.single('image'), async (req, res) => {
       },
     });
 
+    // Generate QR code PNG pointing to the image
+    const imageUrl = `${process.env.RAILWAY_PUBLIC_DOMAIN || 'http://localhost:4000'}/image/${id}`;
+    const qrPng = await QRCode.toBuffer(imageUrl, { width: 300 });
+
     console.log('Created artwork:', id);
-    const qrCode = `~QR:${artwork.id}~`;
-    res.json({ id: artwork.id, qrCode });
+    res.json({ id, qrCode: qrPng.toString('base64') });
   } catch (error) {
     console.error('Upload error:', error);
     res.status(500).json({ error: String(error) });
