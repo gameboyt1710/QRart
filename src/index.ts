@@ -32,9 +32,6 @@ async function ensureTable() {
   }
 }
 
-// Initialize on startup
-ensureTable();
-
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -255,15 +252,24 @@ app.get('/health', (_req, res) => {
 // =====================
 // Start Server
 // =====================
-app.listen(PORT, () => {
-  console.log(`
+async function start() {
+  await ensureTable();
+  
+  app.listen(PORT, () => {
+    console.log(`
 🎨 QRart Server
 ================
 🚀 http://localhost:${PORT}
 📤 Upload: POST /upload
 🖼️  Image: GET /image/:id
 ❤️  Health: GET /health
-  `);
+    `);
+  });
+}
+
+start().catch((error) => {
+  console.error('Failed to start server:', error);
+  process.exit(1);
 });
 
 export default app;
