@@ -1,66 +1,67 @@
-# QRart - Encoded Art for X/Twitter
+# QRart - Hidden Images for Twitter/X
 
-Upload artwork → Get a marker like `~ART:abc123~` → Post on X/Twitter → Users with the browser extension see your art.
+Upload an image → get a QR marker (~QR:id~) → post on Twitter → users with extension see your art.
 
-Artists keep control over their work. Designed to discourage AI training and unauthorized use.
+Twitter never sees the actual image. Only users with the extension can view it.
 
-## Deploy to Railway (with PostgreSQL)
+## Quick Start
 
-1. Push to GitHub
-2. Go to [railway.app](https://railway.app) and sign in
-3. Click "New Project" → "Deploy from GitHub repo"
-4. **Add PostgreSQL:**
-   - Click **"+ New"**
-   - Select **"Database"** → **"Add PostgreSQL"**
-   - Railway creates `DATABASE_URL` automatically
-5. Add environment variables in **"Variables"** tab:
-   ```
-   API_KEYS=your-secret-key-1,your-secret-key-2
-   NODE_ENV=production
-   ```
-6. Railway auto-deploys ✓
+### Option 1: Docker (Recommended)
 
-## Browser Extension
+```bash
+docker-compose up
+```
 
-The extension replaces markers with actual artwork on X/Twitter.
+- Backend: http://localhost:4000
+- PostgreSQL will start automatically
+- Run migrations: `docker exec qrart-app npm run prisma:migrate:deploy`
 
-1. Build it:
-   ```bash
-   cd browser-extension
-   npm install
-   npm run build
-   ```
-2. Load in Chrome:
-   - Go to `chrome://extensions`
-   - Enable "Developer mode"
-   - Click "Load unpacked" → select `browser-extension/dist/`
-3. Configure:
-   - Click extension icon
-   - Enter your Railway URL and API key
-   - Save
-
-## Local Development
+### Option 2: Local Development
 
 ```bash
 npm install
-DATABASE_URL=postgresql://user:pass@localhost/qrart npm run dev
+npm run dev
 ```
 
-Open http://localhost:4000
+Need PostgreSQL running:
+```bash
+docker run --name postgres -e POSTGRES_PASSWORD=password -e POSTGRES_DB=qrart -p 5432:5432 -d postgres:15
+```
+
+Then run migrations:
+```bash
+DATABASE_URL="postgresql://postgres:password@localhost:5432/qrart" npm run prisma:migrate:dev
+```
 
 ## How It Works
 
-1. **Artist uploads** artwork via web UI at `/`
-2. **Gets a marker** like `~ART:abc123~`  
-3. **Posts marker** in a tweet (not the image itself)
-4. **Extension detects marker** and fetches the real artwork
-5. **Artwork displays** in place of the marker
+1. **Upload**: Go to http://localhost:4000 and upload an image
+2. **Get QR**: You get a marker like `~QR:abc123~`
+3. **Post**: Put that marker in a tweet
+4. **View**: Users with extension installed see your image
 
-## "Do Not Train" Policy
+## Browser Extension
 
-- `robots.txt` blocks AI crawlers
-- `X-Robots-Tag` headers on all artwork responses
-- Terms of service prohibit AI training
-- API key authentication controls access
+```bash
+cd browser-extension
+npm install
+npm run build
+```
 
-These are legal/policy measures to protect artists' work.
+In Chrome:
+- Go to `chrome://extensions`
+- Enable "Developer mode"
+- Click "Load unpacked" → select `browser-extension/dist/`
+- Click icon to set backend URL
+
+## API
+
+- `POST /upload` - Upload image, get QR marker
+- `GET /image/:id` - Fetch image by ID
+- `GET /health` - Health check
+
+## Deployment
+
+See `Dockerfile` and `docker-compose.yml` for production setup.
+
+For VPS: build Docker image, push to your server, run with docker-compose.
