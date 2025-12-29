@@ -9,10 +9,7 @@ datasource db {
 
 model Artwork {
   id        String   @id
-  title     String?
-  mimeType  String
   imageData Bytes
+  mimeType  String
   createdAt DateTime @default(now())
-
-  @@index([id])
 }
