@@ -192,11 +192,8 @@ app.post('/upload', upload.single('image'), async (req, res) => {
       },
     });
 
-    // Generate QR code PNG pointing to the image
-    const host = req.get('host') || 'qrart-production.up.railway.app';
-    const protocol = req.get('x-forwarded-proto') || 'https';
-    const imageUrl = `${protocol}://${host}/image/${id}`;
-    const qrPng = await QRCode.toBuffer(imageUrl, { width: 300 });
+    // Generate QR code PNG encoding just the ID
+    const qrPng = await QRCode.toBuffer(id, { width: 300 });
 
     console.log('Created artwork:', id);
     res.json({ id, qrCode: qrPng.toString('base64') });

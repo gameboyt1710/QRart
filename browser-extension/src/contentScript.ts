@@ -1,10 +1,11 @@
 /**
  * QRart Extension - Content Script
- * Detects ~QR:id~ markers and replaces them with actual images
+ * Scans images in tweets, decodes QR codes to get image IDs, fetches and overlays artwork
  */
 
-const QR_REGEX = /~QR:([A-Za-z0-9_-]{4,20})~/g;
-const processedMarkers = new Map<string, boolean>();
+import jsQR from 'jsqr';
+
+const processedIds = new Map<string, boolean>();
 
 let config = {
   backendUrl: localStorage.getItem('backendUrl') || 'https://qrart-production.up.railway.app',
@@ -18,48 +19,93 @@ const observer = new MutationObserver(() => {
 observer.observe(document.body, { childList: true, subtree: true });
 
 async function processTweet(article: Element) {
-  const text = article.textContent || '';
-  let match;
+  const images = article.querySelectorAll('img');
 
-  while ((match = QR_REGEX.exec(text)) !== null) {
-    const id = match[1];
-    if (processedMarkers.has(id)) continue;
-
-    processedMarkers.set(id, true);
-
+  for (const img of images) {
     try {
-      // Fetch image from backend
-      const imageUrl = `${config.backendUrl}/image/${id}`;
-      const response = await fetch(imageUrl);
+      // Skip if already processing this image
+      if ((img as any).dataset.qrartProcessed) continue;
+      (img as any).dataset.qrartProcessed = 'true';
+
+      // Try to decode QR from this image
+      const id = await decodeQRFromImage(img);
+      if (!id || processedIds.has(id)) continue;
+
+      processedIds.set(id, true);
+
+      // Fetch artwork from backend
+      console.log(`[QRart] Found QR code with ID: ${id}`);
+      const response = await fetch(`${config.backendUrl}/image/${id}`);
 
       if (response.ok) {
         const blob = await response.blob();
         const imgUrl = URL.createObjectURL(blob);
 
-        // Find the marker in tweet and replace with image
-        const textElements = Array.from(article.querySelectorAll('[role="textbox"], span, p'));
-        for (const el of textElements) {
-          if (el.textContent?.includes(match[0])) {
-            const img = document.createElement('img');
-            img.src = imgUrl;
-            img.style.cssText =
-              'max-width: 100%; max-height: 500px; border-radius: 8px; margin: 8px 0; cursor: pointer;';
-            img.onclick = () => window.open(imgUrl);
+        // Create overlay image
+        const overlayImg = document.createElement('img');
+        overlayImg.src = imgUrl;
+        overlayImg.style.cssText = `
+          max-width: 100%;
+          max-height: 100%;
+          border-radius: 8px;
+          cursor: pointer;
+          display: block;
+        `;
+        overlayImg.onclick = () => window.open(imgUrl);
 
-            el.parentElement?.insertBefore(img, el.nextSibling);
-            break;
-          }
-        }
+        // Replace the QR code image with the artwork
+        img.replaceWith(overlayImg);
+        console.log(`[QRart] Replaced QR code with artwork for ID: ${id}`);
       }
     } catch (err) {
-      console.log(`Failed to fetch image ${id}:`, err);
+      // Silently fail - not all images are QR codes
     }
   }
+}
+
+async function decodeQRFromImage(img: HTMLImageElement): Promise<string | null> {
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return resolve(null);
+
+    const tempImg = new Image();
+    tempImg.crossOrigin = 'anonymous';
+
+    tempImg.onload = () => {
+      canvas.width = tempImg.width;
+      canvas.height = tempImg.height;
+      ctx.drawImage(tempImg, 0, 0);
+
+      try {
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const decoded = jsQR(imageData.data, imageData.width, imageData.height);
+
+        if (decoded && decoded.data) {
+          // Extract ID from decoded data (should be just the ID)
+          const id = decoded.data.trim();
+          // Validate it looks like an ID (alphanumeric, 4-20 chars)
+          if (/^[A-Za-z0-9_-]{4,20}$/.test(id)) {
+            resolve(id);
+          } else {
+            resolve(null);
+          }
+        } else {
+          resolve(null);
+        }
+      } catch (err) {
+        resolve(null);
+      }
+    };
+
+    tempImg.onerror = () => resolve(null);
+    tempImg.src = img.src;
+  });
 }
 
 // Listen for config changes
 window.addEventListener('storage', (e) => {
   if (e.key === 'backendUrl') {
-    config.backendUrl = e.newValue || 'http://localhost:4000';
+    config.backendUrl = e.newValue || 'https://qrart-production.up.railway.app';
   }
 });

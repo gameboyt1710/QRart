@@ -7,6 +7,9 @@
     "build": "vite build",
     "clean": "rm -rf dist"
   },
+  "dependencies": {
+    "jsqr": "^1.4.0"
+  },
   "devDependencies": {
     "@types/chrome": "^0.0.260",
     "typescript": "^5.3.3",
