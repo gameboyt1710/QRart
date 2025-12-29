@@ -9,6 +9,10 @@ const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 4000;
 
+console.log('Starting QRart...');
+console.log('DATABASE_URL:', process.env.DATABASE_URL ? '✓ set' : '✗ not set');
+console.log('PORT:', PORT);
+
 // Middleware
 app.use(cors());
 app.use(express.json());
